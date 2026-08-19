@@ -10,6 +10,7 @@ pub mod utils;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run(context: tauri::Context) {
+    let _ = dotenvy::dotenv();
     let mut builder = tauri::Builder::default();
 
     // Single-instance + deep-link integration:
@@ -35,11 +36,31 @@ pub fn run(context: tauri::Context) {
         }));
     }
 
+    let log_level = match std::env::var("RUST_LOG")
+        .or_else(|_| std::env::var("LOG_LEVEL"))
+        .unwrap_or_default()
+        .to_lowercase()
+        .as_str()
+    {
+        "trace" => log::LevelFilter::Trace,
+        "debug" => log::LevelFilter::Debug,
+        "info" => log::LevelFilter::Info,
+        "warn" | "warning" => log::LevelFilter::Warn,
+        "error" => log::LevelFilter::Error,
+        "off" => log::LevelFilter::Off,
+        _ => log::LevelFilter::Info,
+    };
+
     builder
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .level(log_level)
+                .build(),
+        )
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_deep_link::init())
         .manage(audio_processor::ProcessState(std::sync::Mutex::new(

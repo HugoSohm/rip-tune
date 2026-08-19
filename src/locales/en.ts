@@ -163,6 +163,9 @@ export const en = {
     downloadCancelled: "Download cancelled",
     errorDownload: "Download error",
     errorPlaylistNotFound: "This playlist is private or does not exist",
+    errorVideoNotFound: "This video is private, removed or unavailable",
+    errorHttp403:
+      "Access forbidden by YouTube (HTTP 403). Try adding cookies in settings",
     cancelling: "Cancelling download",
     currentCleared: "Current track cleared",
     trackRemoved: "Track removed from history",

@@ -50,24 +50,43 @@ fn setup_cookies(
     Ok(None)
 }
 
-/// Checks if standard yt-dlp stderr output indicates that a video or playlist is private/unavailable
-fn is_unavailable_error(stderr: &str) -> bool {
-    stderr.contains("Private video")
+/// Maps raw yt-dlp stderr output to a specific error string/code or cleaned error message
+fn map_yt_dlp_error(stderr: &str) -> String {
+    if !stderr.trim().is_empty() {
+        log::error!("[RipTune yt-dlp Error Output]:\n{}", stderr.trim());
+    }
+    let stderr_lower = stderr.to_lowercase();
+    let cleaned = clean_stderr(stderr);
+    let raw_msg = if cleaned.is_empty() {
+        stderr.trim()
+    } else {
+        cleaned
+    };
+
+    if stderr.contains("403") || stderr_lower.contains("forbidden") {
+        format!("HTTP_403_FORBIDDEN: {}", raw_msg)
+    } else if stderr.contains("playlist does not exist")
         || stderr.contains("This playlist does not exist")
+        || (stderr_lower.contains("playlist")
+            && (stderr_lower.contains("private") || stderr_lower.contains("not exist")))
+    {
+        format!("PLAYLIST_NOT_FOUND: {}", raw_msg)
+    } else if stderr.contains("Private video")
         || stderr.contains("This video is private")
         || stderr.contains("This video has been removed")
         || stderr.contains("Video unavailable")
-        || stderr.contains("playlist does not exist")
-        || stderr.contains("is not available")
-        || stderr.contains("members-only")
-        || stderr.contains("The requested track is not available")
-        || stderr.contains("track has been removed")
-        || stderr.contains("404")
-        || stderr.contains("403")
-        || stderr.contains("Not Found")
-        || stderr.contains("Unable to download JSON metadata")
-        || (stderr.contains("ERROR") && stderr.contains("Private"))
-        || (stderr.contains("ERROR") && stderr.contains("does not exist"))
+        || stderr_lower.contains("video is private")
+        || stderr_lower.contains("video unavailable")
+        || stderr_lower.contains("members-only")
+        || stderr_lower.contains("track has been removed")
+        || stderr_lower.contains("track is not available")
+    {
+        format!("VIDEO_UNAVAILABLE: {}", raw_msg)
+    } else if raw_msg.is_empty() {
+        "Download failed or interrupted".to_string()
+    } else {
+        raw_msg.to_string()
+    }
 }
 
 /// Cleans raw yt-dlp stderr to extract the core ERROR message line
@@ -134,6 +153,8 @@ fn spawn_yt_dlp(
     cmd.arg("--ffmpeg-location")
         .arg(bin_dir)
         .arg("--embed-metadata")
+        .arg("--extractor-args")
+        .arg("youtube:player_client=android,web")
         .arg("-x")
         .arg("--audio-format")
         .arg(format_arg);
@@ -260,6 +281,8 @@ pub async fn check_url_info(
 
     let output = cmd
         .arg("--flat-playlist")
+        .arg("--extractor-args")
+        .arg("youtube:player_client=android,web")
         .arg("--print")
         .arg("%(playlist_count)s")
         .arg("--print")
@@ -281,11 +304,7 @@ pub async fn check_url_info(
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(if is_unavailable_error(&stderr) {
-            "PLAYLIST_NOT_FOUND".to_string()
-        } else {
-            clean_stderr(&stderr).to_string()
-        });
+        return Err(map_yt_dlp_error(&stderr));
     }
 
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
@@ -293,11 +312,7 @@ pub async fn check_url_info(
 
     if lines.is_empty() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(if is_unavailable_error(&stderr) {
-            "PLAYLIST_NOT_FOUND".to_string()
-        } else {
-            "Failed to fetch URL info".to_string()
-        });
+        return Err(map_yt_dlp_error(&stderr));
     }
 
     let mut is_playlist = false;
@@ -408,16 +423,7 @@ pub async fn download_audio(
         // Give the stderr thread a moment to finish writing
         thread::sleep(std::time::Duration::from_millis(200));
         let stderr_output = stderr_buf.lock().map(|g| g.clone()).unwrap_or_default();
-
-        if is_unavailable_error(&stderr_output) {
-            return Err("PLAYLIST_NOT_FOUND".to_string());
-        }
-        let stderr_clean = clean_stderr(&stderr_output);
-        return Err(if stderr_clean.is_empty() {
-            "Download failed or interrupted".to_string()
-        } else {
-            stderr_clean.to_string()
-        });
+        return Err(map_yt_dlp_error(&stderr_output));
     }
 
     Ok(DownloadResponse {

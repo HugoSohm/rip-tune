@@ -166,6 +166,9 @@ export const fr = {
     downloadCancelled: "Téléchargement annulé",
     errorDownload: "Erreur de téléchargement",
     errorPlaylistNotFound: "Cette playlist est privée ou n'existe pas",
+    errorVideoNotFound: "Cette vidéo est privée, supprimée ou indisponible",
+    errorHttp403:
+      "Accès refusé par YouTube (HTTP 403). Essayez d'ajouter des cookies dans les paramètres",
     cancelling: "Annulation du téléchargement",
     currentCleared: "Piste actuelle effacée",
     trackRemoved: "Titre retiré de l'historique",

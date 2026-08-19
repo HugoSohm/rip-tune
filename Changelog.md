@@ -1,5 +1,15 @@
 # RipTune Changelog
 
+## 1.0.3 (2026-08-19)
+
+### 🎵 Download & Preferences
+- **Audio Format Memory**: Your preferred audio format (MP3, MP3 HD, WAV, FLAC, M4A) is now automatically remembered across app restarts.
+- **Accurate Error Messages**: Refined error notifications when downloading single tracks so that network or access errors (such as YouTube HTTP 403) display clear, helpful instructions instead of misleading playlist error messages.
+- **Improved YouTube Compatibility**: Fixed downloads failing with an access error (HTTP 403) on recent YouTube changes. Downloads now work reliably without requiring any additional software to be installed.
+
+### ⚙️ Developer
+- **Configurable Log Level**: The logging verbosity can now be controlled via a `LOG_LEVEL` environment variable in your `.env` file (accepted values: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `OFF`). Defaults to `INFO`.
+
 ## 1.0.2 (2026-06-24)
 
 ### 🎵 Audio & Formats

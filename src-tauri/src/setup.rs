@@ -102,13 +102,11 @@ fn configure_window_dimensions<R: Runtime>(app: &App<R>) {
 }
 
 /// Set window decorations and shadow settings for Windows/Linux platforms
-fn configure_window_decorations<R: Runtime>(app: &App<R>) {
+fn configure_window_decorations<R: Runtime>(_app: &App<R>) {
     // This should be outside the monitor check to ensure it runs even on Linux/Wayland if monitor detection is flaky
-    if let Some(window) = app.get_webview_window("main") {
-        #[cfg(any(target_os = "windows", target_os = "linux"))]
-        {
-            window.set_decorations(false).ok();
-            window.set_shadow(true).ok();
-        }
+    #[cfg(any(target_os = "windows", target_os = "linux"))]
+    if let Some(window) = _app.get_webview_window("main") {
+        window.set_decorations(false).ok();
+        window.set_shadow(true).ok();
     }
 }

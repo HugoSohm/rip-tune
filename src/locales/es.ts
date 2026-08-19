@@ -164,6 +164,9 @@ export const es = {
     downloadCancelled: "Descarga cancelada",
     errorDownload: "Error de descarga",
     errorPlaylistNotFound: "Esta lista es privada o no existe",
+    errorVideoNotFound: "Este video es privado, eliminado o no está disponible",
+    errorHttp403:
+      "Acceso denegado por YouTube (HTTP 403). Intente agregar cookies en la configuración",
     cancelling: "Cancelando descarga",
     currentCleared: "Pista actual eliminada",
     trackRemoved: "Pista eliminada del historial",

@@ -33,6 +33,42 @@ export function useDownloader() {
   const { updateHistory, setLatest, setLatestPlaylist } = useHistoryContext();
   const { processFile } = useAudioProcessor();
 
+  const formatDownloadError = (
+    errStr: string,
+    isPlaylistContext: boolean,
+  ): string => {
+    if (errStr.includes("HTTP_403_FORBIDDEN") || errStr.includes("403")) {
+      return t.notifications.errorHttp403;
+    }
+    if (errStr.includes("PLAYLIST_NOT_FOUND")) {
+      return t.notifications.errorPlaylistNotFound;
+    }
+    if (errStr.includes("VIDEO_UNAVAILABLE")) {
+      return t.notifications.errorVideoNotFound;
+    }
+    if (isPlaylistContext) {
+      if (
+        errStr.includes("does not exist") ||
+        errStr.includes("Private") ||
+        errStr.includes("private") ||
+        errStr.includes("not available")
+      ) {
+        return t.notifications.errorPlaylistNotFound;
+      }
+    } else {
+      if (
+        errStr.includes("does not exist") ||
+        errStr.includes("Private") ||
+        errStr.includes("private") ||
+        errStr.includes("unavailable") ||
+        errStr.includes("not available")
+      ) {
+        return t.notifications.errorVideoNotFound;
+      }
+    }
+    return `${t.notifications.errorDownload}: ${errStr}`;
+  };
+
   const handleDownload = async (
     overrideUrl?: string,
     overrideShouldDownload?: boolean,
@@ -100,23 +136,10 @@ export function useDownloader() {
           setPlaylistProgress({ current: 0, total: info.count });
           clearNotificationsFor(t.notifications.fetchingPlaylist);
         } catch (e) {
+          console.error("[RipTune Playlist Check Error]", e);
           clearNotificationsFor(t.notifications.fetchingPlaylist);
           const errStr = e?.toString() || "";
-          // Detect private or non-existent playlist
-          const isPlaylistNotFound =
-            errStr.includes("PLAYLIST_NOT_FOUND") ||
-            errStr.includes("does not exist") ||
-            errStr.includes("YouTube said") ||
-            errStr.includes("Private") ||
-            errStr.includes("private") ||
-            errStr.includes("not available") ||
-            (errStr.includes("The playlist") && errStr.includes("ERROR"));
-          addNotification(
-            isPlaylistNotFound
-              ? t.notifications.errorPlaylistNotFound
-              : `${t.notifications.errorDownload}: ${errStr}`,
-            "error",
-          );
+          addNotification(formatDownloadError(errStr, true), "error");
           return; // Stop — don't attempt to download a broken playlist
         }
       }
@@ -271,24 +294,16 @@ export function useDownloader() {
 
       setUrl("");
     } catch (error) {
-      console.error(error);
+      console.error("[RipTune Download Error]", error);
       const errStr = error?.toString() || "";
       const isCancel = errStr.includes("Cancelled");
-      const isPlaylistNotFound =
-        errStr.includes("PLAYLIST_NOT_FOUND") ||
-        errStr.includes("does not exist") ||
-        errStr.includes("Private") ||
-        errStr.includes("private") ||
-        errStr.includes("not available");
       clearNotificationsFor(t.notifications.downloading);
       clearNotificationsFor(t.notifications.fetchingPlaylist);
       clearNotificationsFor(t.notifications.cancelling);
       addNotification(
         isCancel
           ? t.notifications.downloadCancelled
-          : isPlaylistNotFound
-            ? t.notifications.errorPlaylistNotFound
-            : `${t.notifications.errorDownload}: ${error}`,
+          : formatDownloadError(errStr, isPlaylist && downloadPlaylist),
         isCancel ? "info" : "error",
       );
       setPlaylistProgress(null);

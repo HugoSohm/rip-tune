@@ -45,7 +45,11 @@ export function useUI() {
   const [isBugModalOpen, setIsBugModalOpen] = useState(false);
   const [isChangelogModalOpen, setIsChangelogModalOpen] = useState(false);
   const [url, setUrl] = useState("");
-  const [format, setFormat] = useState("mp3");
+  const [format, setFormat] = useState(() => {
+    const saved = localStorage.getItem("riptune_format");
+    const validFormats = ["mp3", "mp3_hd", "wav", "flac", "m4a"];
+    return saved && validFormats.includes(saved) ? saved : "mp3";
+  });
   const [playlistProgress, setPlaylistProgress] =
     useState<PlaylistProgress | null>(null);
 
@@ -60,6 +64,10 @@ export function useUI() {
   useEffect(() => {
     localStorage.setItem("riptune_lang", lang);
   }, [lang]);
+
+  useEffect(() => {
+    localStorage.setItem("riptune_format", format);
+  }, [format]);
 
   return {
     activeTab,
